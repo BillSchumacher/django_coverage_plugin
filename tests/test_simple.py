@@ -4,14 +4,12 @@
 
 """Simple tests for django_coverage_plugin."""
 
+
 from .plugin_test import DjangoPluginTestCase
 
 # 200 Unicode chars: snowman + poo.
 UNIUNI = u"\u26C4\U0001F4A9"*100
-if isinstance(UNIUNI, str):
-    UNISTR = UNIUNI
-else:
-    UNISTR = UNIUNI.encode("utf8")
+UNISTR = UNIUNI if isinstance(UNIUNI, str) else UNIUNI.encode("utf8")
 
 
 class SimpleTemplateTest(DjangoPluginTestCase):

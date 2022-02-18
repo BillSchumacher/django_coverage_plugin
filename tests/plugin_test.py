@@ -23,32 +23,18 @@ from django_coverage_plugin.plugin import DjangoTemplatePlugin
 
 def test_settings():
     """Create a dict full of default Django settings for the tests."""
-    the_settings = {
-        'CACHES': {
-            'default': {
+    the_settings = {'CACHES': {'default': {
                 'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            },
-        },
-        'DATABASES': {
-            'default': {
+            }}, 'DATABASES': {'default': {
                 'ENGINE': 'django.db.backends.sqlite3',
                 'NAME': ':memory:',
-            }
-        },
-        'ROOT_URLCONF': 'tests',
-    }
-
-    the_settings.update({
-        'TEMPLATES': [
-            {
+            }}, 'ROOT_URLCONF': 'tests', 'TEMPLATES': [{
                 'BACKEND': 'django.template.backends.django.DjangoTemplates',
                 'DIRS': ['templates'],      # where the tests put things.
                 'OPTIONS': {
                     'debug': True,
                 },
-            },
-        ],
-    })
+            }]}
 
     if django.VERSION < (1, 10):
         # for {% ssi %}
@@ -129,8 +115,6 @@ class DjangoPluginTestCase(StdStreamCapturingMixin, TempDirMixin, TestCase):
 
         self.cov = coverage.Coverage(**options)
         self.append_config("run:plugins", "django_coverage_plugin")
-        if 0:
-            self.append_config("run:debug", "trace")
         self.cov.start()
         text = tem.render(ctx)
         self.cov.stop()
@@ -141,9 +125,8 @@ class DjangoPluginTestCase(StdStreamCapturingMixin, TempDirMixin, TestCase):
         else:
             plugins = self.cov._plugins
         for pl in plugins:
-            if isinstance(pl, DjangoTemplatePlugin):
-                if not pl._coverage_enabled:
-                    raise PluginDisabled()
+            if isinstance(pl, DjangoTemplatePlugin) and not pl._coverage_enabled:
+                raise PluginDisabled()
         return text
 
     def append_config(self, option, value):
@@ -160,8 +143,7 @@ class DjangoPluginTestCase(StdStreamCapturingMixin, TempDirMixin, TestCase):
 
         """
         path = self._path(name)
-        line_data = self.cov.data.line_data()[os.path.realpath(path)]
-        return line_data
+        return self.cov.data.line_data()[os.path.realpath(path)]
 
     def get_analysis(self, name=None):
         """Get the coverage analysis for a template.
@@ -212,8 +194,7 @@ class DjangoPluginTestCase(StdStreamCapturingMixin, TempDirMixin, TestCase):
 
         """
         path = self._path(name)
-        html_coverage = self.cov.html_report(os.path.abspath(path))
-        return html_coverage
+        return self.cov.html_report(os.path.abspath(path))
 
     def get_xml_report(self, name=None):
         """Get the xml report for a template.
@@ -223,8 +204,7 @@ class DjangoPluginTestCase(StdStreamCapturingMixin, TempDirMixin, TestCase):
 
         """
         path = self._path(name)
-        xml_coverage = self.cov.xml_report(os.path.abspath(path))
-        return xml_coverage
+        return self.cov.xml_report(os.path.abspath(path))
 
     @contextlib.contextmanager
     def assert_plugin_disabled(self, msg):
@@ -251,7 +231,7 @@ class DjangoPluginTestCase(StdStreamCapturingMixin, TempDirMixin, TestCase):
             "due to an exception:",
             warn_text
         )
-        self.assertIn("DjangoTemplatePluginException: " + msg, warn_text)
+        self.assertIn(f'DjangoTemplatePluginException: {msg}', warn_text)
 
 
 def squashed(s):

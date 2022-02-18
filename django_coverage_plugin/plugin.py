@@ -146,10 +146,7 @@ def read_template_source(filename):
     with open(filename, "rb") as f:
         # The FILE_CHARSET setting will be removed in 3.1:
         # https://docs.djangoproject.com/en/3.0/ref/settings/#file-charset
-        if django.VERSION >= (3, 1):
-            charset = 'utf-8'
-        else:
-            charset = settings.FILE_CHARSET
+        charset = 'utf-8' if django.VERSION >= (3, 1) else settings.FILE_CHARSET
         text = f.read().decode(charset)
 
     return text
@@ -227,22 +224,13 @@ class DjangoTemplatePlugin(
         if frame.f_code.co_name not in self.RENDER_METHODS:
             return None
 
-        if 0:
-            dump_frame(frame, label="dynamic_source_filename")
         filename = filename_for_frame(frame)
         if filename is not None:
-            if filename.startswith("<"):
-                # String templates have a filename of "<unknown source>", and
-                # can't be reported on later, so ignore them.
-                return None
-            return filename
+            return None if filename.startswith("<") else filename
         return None
 
     def line_number_range(self, frame):
         assert frame.f_code.co_name in self.RENDER_METHODS
-        if 0:
-            dump_frame(frame, label="line_number_range")
-
         render_self = frame.f_locals['self']
         if isinstance(render_self, (NodeList, Template)):
             return -1, -1
@@ -298,9 +286,6 @@ class DjangoTemplatePlugin(
         """
         if filename not in self.source_map:
             template_source = read_template_source(filename)
-            if 0:   # change to see the template text
-                for i in range(0, len(template_source), 10):
-                    print("%3d: %r" % (i, template_source[i:i+10]))
             self.source_map[filename] = make_line_map(template_source)
         return self.source_map[filename]
 
@@ -348,10 +333,12 @@ class FileReporter(coverage.plugin.FileReporter):
                         token.contents,
                     )
                 )
-            if token.token_type == TokenType.BLOCK:
-                if token.contents == "endcomment":
-                    comment = False
-                    continue
+            if (
+                token.token_type == TokenType.BLOCK
+                and token.contents == "endcomment"
+            ):
+                comment = False
+                continue
 
             if comment:
                 continue
@@ -416,23 +403,26 @@ def running_sum(seq):
 
 def make_line_map(text):
     line_lengths = [len(line) for line in text.splitlines(True)]
-    line_map = list(running_sum(line_lengths))
-    return line_map
+    return list(running_sum(line_lengths))
 
 
 def get_line_number(line_map, offset):
     """Find a line number, given a line map and a character offset."""
-    for lineno, line_offset in enumerate(line_map, start=1):
-        if line_offset > offset:
-            return lineno
-    return -1
+    return next(
+        (
+            lineno
+            for lineno, line_offset in enumerate(line_map, start=1)
+            if line_offset > offset
+        ),
+        -1,
+    )
 
 
 def dump_frame(frame, label=""):
     """Dump interesting information about this frame."""
     locals = dict(frame.f_locals)
-    self = locals.get('self', None)
-    context = locals.get('context', None)
+    self = locals.get('self')
+    context = locals.get('context')
     if "__builtins__" in locals:
         del locals["__builtins__"]
 
